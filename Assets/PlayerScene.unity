@@ -195,7 +195,6 @@ MonoBehaviour:
   attackRange: 5
   attackDamage: 60
   attackCooldown: 0.5
-  shovelTransform: {fileID: 160105854}
 --- !u!65 &160105849
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -342,7 +341,7 @@ GameObject:
   - component: {fileID: 516820237}
   - component: {fileID: 516820236}
   m_Layer: 0
-  m_Name: Enemy (1)
+  m_Name: Enemy_direct
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -422,7 +421,7 @@ Rigidbody:
   m_GameObject: {fileID: 516820235}
   serializedVersion: 2
   m_Mass: 1
-  m_Drag: 0
+  m_Drag: 5
   m_AngularDrag: 0.05
   m_UseGravity: 1
   m_IsKinematic: 0
@@ -501,7 +500,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 516820235}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15.42, y: 2, z: 5}
+  m_LocalPosition: {x: 11.21, y: 2, z: 5}
   m_LocalScale: {x: 1, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -817,7 +816,7 @@ GameObject:
   - component: {fileID: 746093096}
   - component: {fileID: 746093097}
   m_Layer: 0
-  m_Name: Enemy
+  m_Name: Enemy_3sec
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -848,7 +847,7 @@ Rigidbody:
   m_GameObject: {fileID: 746093088}
   serializedVersion: 2
   m_Mass: 1
-  m_Drag: 0
+  m_Drag: 5
   m_AngularDrag: 0.05
   m_UseGravity: 1
   m_IsKinematic: 0
@@ -1603,7 +1602,6 @@ GameObject:
   - component: {fileID: 1074524328}
   - component: {fileID: 1074524326}
   - component: {fileID: 1074524325}
-  - component: {fileID: 1074524331}
   - component: {fileID: 1074524332}
   m_Layer: 7
   m_Name: Player
@@ -1641,8 +1639,8 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 80
-  m_CollisionDetection: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!23 &1074524328
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1711,19 +1709,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1074524331
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074524324}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 1, y: 2, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!136 &1074524332
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1731,7 +1716,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1074524324}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: fadd9cd4c9866e643ada830bcd1c85e9, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   m_Radius: 0.5
@@ -1892,7 +1877,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1997489693}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: fadd9cd4c9866e643ada830bcd1c85e9, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2

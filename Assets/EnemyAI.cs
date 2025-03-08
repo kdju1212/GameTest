@@ -1,63 +1,70 @@
-using UnityEngine;
+ï»¿using UnityEngine;
+using UnityEngine.AI;
 
 public class EnemyAI : MonoBehaviour
 {
     public enum EnemyType
     {
-        InstantDeath,     // ÇÃ·¹ÀÌ¾î¿Í ´êÀ¸¸é Áï½Ã Á×´Â Àû
-        TimedDeath,       // ÇÃ·¹ÀÌ¾î¿Í 3ÃÊ µ¿¾È ´êÀ¸¸é Á×´Â Àû
+        InstantDeath,     // í”Œë ˆì´ì–´ì™€ ë‹¿ìœ¼ë©´ ì¦‰ì‹œ ì£½ëŠ” ì 
+        TimedDeath,       // í”Œë ˆì´ì–´ì™€ 3ì´ˆ ë™ì•ˆ ë‹¿ìœ¼ë©´ ì£½ëŠ” ì 
     }
 
-    public EnemyType enemyType = EnemyType.InstantDeath;  // ÀûÀÇ Å¸ÀÔ ¼³Á¤ (Inspector¿¡¼­ ¼±ÅÃ °¡´É)
-    public Transform player;           // ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡
-    private UnityEngine.AI.NavMeshAgent agent;
+    public EnemyType enemyType = EnemyType.InstantDeath;  // ì ì˜ íƒ€ì… ì„¤ì • (Inspectorì—ì„œ ì„ íƒ ê°€ëŠ¥)
+    public Transform player; // í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜
+    private NavMeshAgent agent;
     private GameManager gameManager;
-    private EnemyHealth enemyHealth;
+    private EnemyBase enemyBase; // âœ… EnemyBase ì‚¬ìš©
+    private Rigidbody rb;
 
-    // Å¸ÀÌ¸Ó °ü·Ã º¯¼ö
-    private float timeInContact = 0f;    // ÇÃ·¹ÀÌ¾î¿Í Á¢ÃËÇÑ ½Ã°£
-    private bool isInContact = false;    // ÇÃ·¹ÀÌ¾î¿Í Á¢ÃË Áß ¿©ºÎ
-    public float contactTimeForDeath = 3f; // ÇÃ·¹ÀÌ¾î°¡ 3ÃÊ µ¿¾È Á¢ÃËÇÏ¸é Á×À½
+    // íƒ€ì´ë¨¸ ê´€ë ¨ ë³€ìˆ˜
+    private float timeInContact = 0f;
+    private bool isInContact = false;
+    public float contactTimeForDeath = 3f;
 
-    // °ø°İ È½¼ö
+    // ê³µê²© íšŸìˆ˜
     public int maxHitsBeforeDeath = 3;
     private int currentHits = 0;
 
-    private Rigidbody rb;  // ÀûÀÇ Rigidbody
-    private bool isAttachedToPlayer = false; // ÀûÀÌ ÇÃ·¹ÀÌ¾î¿¡ ´Ş¶óºÙ¾î ÀÖ´ÂÁö ¿©ºÎ
-    private Transform playerHead;  // ÇÃ·¹ÀÌ¾îÀÇ ¸Ó¸® À§Ä¡
+    private bool isAttachedToPlayer = false;
+    private Transform playerHead;
 
     void Start()
     {
-        agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
-        gameManager = FindObjectOfType<GameManager>(); // GameManager Ã£±â
-        enemyHealth = GetComponent<EnemyHealth>(); // ÀûÀÇ Ã¼·Â ½ºÅ©¸³Æ® Ã£±â
+        agent = GetComponent<NavMeshAgent>();
+        gameManager = FindObjectOfType<GameManager>();
+        enemyBase = GetComponent<EnemyBase>(); // âœ… EnemyBase ì—°ê²°
         rb = GetComponent<Rigidbody>();
-        playerHead = player.Find("Head");  // ÇÃ·¹ÀÌ¾îÀÇ ¸Ó¸® À§Ä¡ Ã£±â
+
+        if (player == null)
+        {
+            player = GameObject.FindWithTag("Player")?.transform;
+        }
+
+        if (player != null)
+        {
+            playerHead = player.Find("Head");
+        }
     }
 
     void Update()
     {
         if (player != null)
         {
-            agent.SetDestination(player.position); // ÇÃ·¹ÀÌ¾î¸¦ ÃßÀû
+            agent.SetDestination(player.position);
 
-            // Å¸ÀÌ¸Ó¿Í Ãæµ¹ Ã³¸®
             if (enemyType == EnemyType.TimedDeath && isInContact)
             {
-                timeInContact += Time.deltaTime; // Á¢ÃË ½Ã°£À» ´Ã·Á°¡¸ç
+                timeInContact += Time.deltaTime;
                 if (timeInContact >= contactTimeForDeath)
                 {
-                    // ÇÃ·¹ÀÌ¾î°¡ 3ÃÊ µ¿¾È Á¢ÃËÇÏ¸é Àû Á×ÀÌ±â
-                    gameManager.GameOver(); // °ÔÀÓ ¿À¹ö Ã³¸®
-                    PlayerDie();  // ÇÃ·¹ÀÌ¾î Á×À½
+                    gameManager.GameOver();
+                    PlayerDie();
                 }
             }
 
-            // ÀûÀÌ ÇÃ·¹ÀÌ¾îÀÇ ¸Ó¸® À§¿¡ ´Ş¶óºÙµµ·Ï Ã³¸®
             if (isAttachedToPlayer)
             {
-                transform.position = playerHead.position + new Vector3(0, 1.5f, 0); // ÇÃ·¹ÀÌ¾î ¸Ó¸® À§ 1.5m ³ôÀÌ¿¡ À§Ä¡½ÃÅ´
+                transform.position = playerHead.position + new Vector3(0, 1.5f, 0);
             }
         }
     }
@@ -66,22 +73,18 @@ public class EnemyAI : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            // ÇÃ·¹ÀÌ¾î¿Í Ãæµ¹ ½Ã
             if (enemyType == EnemyType.InstantDeath)
             {
-                // Áï½Ã Á×ÀÌ´Â Àû
-                gameManager.GameOver(); // °ÔÀÓ ¿À¹ö Ã³¸®
-                PlayerDie();  // ÇÃ·¹ÀÌ¾î Á×À½
+                gameManager.GameOver();
+                PlayerDie();
             }
             else if (enemyType == EnemyType.TimedDeath)
             {
-                // 3ÃÊ µ¿¾È ´ê¾Æ¾ß Á×´Â Àû
-                isInContact = true;  // ÇÃ·¹ÀÌ¾î¿Í Á¢ÃË ½ÃÀÛ
-                timeInContact = 0f;  // Å¸ÀÌ¸Ó ÃÊ±âÈ­
+                isInContact = true;
+                timeInContact = 0f;
             }
 
-            // ÇÃ·¹ÀÌ¾î¿Í Ãæµ¹ ½Ã ÀûÀ» ÇÃ·¹ÀÌ¾îÀÇ ¸Ó¸® À§¿¡ ºÙÀÌ±â
-            isAttachedToPlayer = true;  // ÀûÀÌ ÇÃ·¹ÀÌ¾î¿¡ ´Ş¶óºÙ¾ú´Ù°í ¼³Á¤
+            isAttachedToPlayer = true;
         }
     }
 
@@ -89,48 +92,43 @@ public class EnemyAI : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            // ÇÃ·¹ÀÌ¾î¿Í Á¢ÃËÀÌ ³¡³ª¸é Å¸ÀÌ¸Ó ÃÊ±âÈ­
             isInContact = false;
             timeInContact = 0f;
-            isAttachedToPlayer = false; // ÀûÀÌ ÇÃ·¹ÀÌ¾î¿Í ¶³¾îÁö¸é
-            rb.isKinematic = false; // ¹°¸®Àû ÈûÀ» ´Ù½Ã È°¼ºÈ­
+            isAttachedToPlayer = false;
+            rb.isKinematic = false;
         }
     }
 
-    // ´Ù¸¥ ÇÃ·¹ÀÌ¾î°¡ ÀûÀ» ¶§¸®¸é ¶³¾îÁö°Ô ÇÏ±â
+    // âœ… ë°ë¯¸ì§€ ì²˜ë¦¬: EnemyBaseì—ì„œ ì²´ë ¥ ê´€ë¦¬
     public void TakeDamage(int damage)
     {
-        if (enemyHealth != null)
+        if (enemyBase != null)
         {
-            enemyHealth.TakeDamage(damage);
+            enemyBase.TakeDamage(damage); // âœ… EnemyBaseì—ì„œ ì²´ë ¥ ê°ì†Œ ì²˜ë¦¬
         }
 
-        // 3¹ø ¸ÂÀ¸¸é ÀûÀÌ Á×À½
         currentHits++;
         if (currentHits >= maxHitsBeforeDeath)
         {
             Die();
         }
 
-        // ¹°¸®ÀûÀ¸·Î ¶³¾îÁö°Ô ÇÏ±â (´Ù¸¥ ÇÃ·¹ÀÌ¾î°¡ ¶§¸®¸é)
         if (isAttachedToPlayer)
         {
-            rb.isKinematic = false; // ¹°¸®ÀûÀÎ ¿µÇâÀ» ¹Şµµ·Ï ¼³Á¤
-            rb.AddForce(Vector3.up * 5f, ForceMode.Impulse); // À§·Î Æ¨±â°Ô ¼³Á¤
-            isAttachedToPlayer = false; // ¶³¾îÁ³À¸¹Ç·Î ´õ ÀÌ»ó ºÙÁö ¾ÊÀ½
+            rb.isKinematic = false;
+            rb.AddForce(Vector3.up * 5f, ForceMode.Impulse);
+            isAttachedToPlayer = false;
         }
     }
 
-    // ÀûÀÌ Á×À» ¶§ Ã³¸®
     void Die()
     {
-        Debug.Log("ÀûÀÌ Á×¾ú½À´Ï´Ù!");
-        Destroy(gameObject); // Àû ¿ÀºêÁ§Æ® Á¦°Å
+        Debug.Log("ì ì´ ì£½ì—ˆìŠµë‹ˆë‹¤!");
+        Destroy(gameObject);
     }
 
     void PlayerDie()
     {
-        Debug.Log("ÇÃ·¹ÀÌ¾î°¡ Á×¾ú½À´Ï´Ù!");
+        Debug.Log("í”Œë ˆì´ì–´ê°€ ì£½ì—ˆìŠµë‹ˆë‹¤!");
     }
-
 }
