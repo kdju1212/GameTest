@@ -115,6 +115,7 @@ public class Shovel : MonoBehaviour, IPickupable
         // ✅ 공격 실행 중 추가 입력 방지
         canAttack = false;
         Invoke(nameof(ResetAttack), attackCooldown);
+        
 
         if (animator != null && isPickedUp)
         {

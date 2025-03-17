@@ -17,9 +17,9 @@ TagManager:
   - Player
   - Item
   - 
-  - 
-  - 
-  - 
+  - Floor
+  - Wall
+  - Door
   - 
   - 
   - 
