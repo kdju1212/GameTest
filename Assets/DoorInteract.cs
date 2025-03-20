@@ -8,8 +8,10 @@ public class DoorInteract : MonoBehaviour
     public Transform player;
     public Transform exitPoint_A; // 문 앞쪽 출구
     public Transform exitPoint_B; // 문 뒤쪽 출구
-    public Image progressBar;
-    public TextMeshProUGUI interactText;
+    public static Image progressBar;
+    public static TextMeshProUGUI interactText;
+    public static Transform canvasTransform; // ✅ UI가 배치될 `Canvas`
+    private static DoorInteract currentDoor = null; // ✅ 현재 활성화된 문
 
     private bool isHoldingE = false;
     private float holdTime = 1.5f;
@@ -18,19 +20,44 @@ public class DoorInteract : MonoBehaviour
 
     void Start()
     {
-        progressBar.fillAmount = 0f;
-        progressBar.gameObject.SetActive(false);
-        interactText.gameObject.SetActive(false);
-        interactText.text = "Hold [E] for 1.5 seconds to open"; // 영어로 변경
-
         doorForward = transform.forward; // 문의 정면 방향 저장
+
+        // ✅ `DoorCanvas`를 찾고 UI 요소 가져오기
+        GameObject canvasObj = GameObject.Find("DoorCanvas");
+        if (canvasObj != null)
+        {
+            canvasTransform = canvasObj.transform;
+            progressBar = canvasObj.transform.Find("ProgressBar")?.GetComponent<Image>();
+            interactText = canvasObj.transform.Find("InteractText")?.GetComponent<TextMeshProUGUI>();
+        }
+        else
+        {
+            Debug.LogError("🚨 [DoorInteract] `DoorCanvas`를 찾을 수 없습니다! Hierarchy에서 확인하세요.");
+        }
+
+        // ✅ UI 초기 상태 설정
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
+        if (interactText != null) interactText.gameObject.SetActive(false);
     }
 
     void Update()
     {
-        if (IsPlayerNearby() && IsLookingAtDoor()) // ✅ 플레이어가 문 근처에 있을 때만 실행
+        if (progressBar == null || interactText == null || canvasTransform == null)
+            return;
+
+        bool isNearby = IsPlayerNearby();
+        bool isLooking = IsLookingAtDoor();
+
+        if (isNearby && isLooking)
         {
-            interactText.gameObject.SetActive(true); // UI 활성화
+            if (currentDoor != this) // ✅ 현재 문이 바뀌었을 때만 UI를 업데이트
+            {
+                currentDoor = this;
+                MoveCanvasToExitPoint(); // ✅ exitPoint 기준으로 UI 위치 변경
+                interactText.gameObject.SetActive(true);
+                progressBar.gameObject.SetActive(true);
+                Debug.Log($"✅ {gameObject.name} UI 활성화됨!");
+            }
 
             if (Input.GetKey(KeyCode.E))
             {
@@ -47,13 +74,38 @@ public class DoorInteract : MonoBehaviour
                 currentHoldTime = 0f;
                 progressBar.fillAmount = 0f;
                 progressBar.gameObject.SetActive(false);
+                interactText.gameObject.SetActive(false);
             }
         }
-        else
+        else if (currentDoor == this)
         {
+            currentDoor = null;
             interactText.gameObject.SetActive(false);
+            progressBar.gameObject.SetActive(false);
+            Debug.Log($"❌ {gameObject.name} UI 비활성화됨!");
         }
     }
+
+    void MoveCanvasToExitPoint()
+    {
+        // ✅ 현재 이동할 출구 선택
+        Transform selectedExit = GetCorrectExit();
+
+        // ✅ 반대편 출구를 선택
+        Transform uiPositionExit = (selectedExit == exitPoint_A) ? exitPoint_B : exitPoint_A;
+
+        if (uiPositionExit != null)
+        {
+            // ✅ UI를 반대편 출구 위로 이동
+            canvasTransform.position = uiPositionExit.position + new Vector3(0, 1.5f, 0);
+        }
+
+        // ✅ UI가 플레이어를 바라보도록 설정
+        Vector3 lookDirection = player.position - canvasTransform.position;
+        lookDirection.y = 0; // Y축 고정 (UI가 이상한 각도로 회전하지 않도록)
+        canvasTransform.rotation = Quaternion.LookRotation(-lookDirection);
+    }
+
 
     IEnumerator HoldToTeleport()
     {
@@ -83,50 +135,20 @@ public class DoorInteract : MonoBehaviour
 
         if (selectedExit != null)
         {
-            Quaternion originalRotation = player.rotation; // 🚀 플레이어의 원래 회전값 저장
-
-            player.position = selectedExit.position; // 플레이어 위치 이동
-            player.rotation = originalRotation; // 🚀 원래 방향 유지
-
-            Debug.Log($"🚀 플레이어가 {selectedExit.name}에서 올바르게 텔레포트됨 (방향 유지)");
-
+            player.position = selectedExit.position;
+            Debug.Log($"🚀 플레이어가 {selectedExit.name}로 텔레포트됨!");
         }
         else
         {
-            Debug.LogError("🚨 출구 위치가 설정되지 않음!");
-        }
-
-        // ✅ 문(Collider) 비활성화 후 일정 시간 후 다시 활성화
-        Collider doorCollider = GetComponent<Collider>();
-        if (doorCollider != null)
-        {
-            doorCollider.enabled = false;
-            StartCoroutine(ReenableCollider(doorCollider));
+            Debug.LogError($"🚨 {gameObject.name} 출구 위치가 설정되지 않음!");
         }
     }
-
-
 
     Transform GetCorrectExit()
     {
-        // 플레이어가 문을 바라보는 방향 벡터 계산
         Vector3 playerToDoor = player.position - transform.position;
         float dot = Vector3.Dot(playerToDoor.normalized, doorForward);
-
-        if (dot > 0) // 문 앞쪽에서 접근한 경우
-        {
-            return exitPoint_A;
-        }
-        else // 문 뒤쪽에서 접근한 경우
-        {
-            return exitPoint_B;
-        }
-    }
-
-    IEnumerator ReenableCollider(Collider collider)
-    {
-        yield return new WaitForSeconds(1f); // 1초 후 다시 활성화
-        collider.enabled = true;
+        return dot > 0 ? exitPoint_A : exitPoint_B;
     }
 
     bool IsLookingAtDoor()
@@ -135,24 +157,17 @@ public class DoorInteract : MonoBehaviour
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         RaycastHit hit;
 
-        // ✅ Ray를 시각적으로 확인
-        Debug.DrawRay(ray.origin, ray.direction * 7f, Color.red, 0.1f);
+        int layerMask = LayerMask.GetMask("Door");
 
-        int doorLayerMask = LayerMask.GetMask("Door"); // ✅ "Door" 레이어만 감지하도록 설정
-
-        if (Physics.Raycast(ray, out hit, 7f, doorLayerMask)) // ✅ 문 레이어만 감지
+        if (Physics.Raycast(ray, out hit, 7f, layerMask))
         {
-            if (hit.collider.gameObject == gameObject)
-            {
-                return true;
-            }
+            return hit.collider.gameObject == gameObject;
         }
-
         return false;
     }
 
     bool IsPlayerNearby()
     {
-        return Vector3.Distance(player.position, transform.position) < 7f; // ✅ 문에서 7m 이내일 때만 true 반환
+        return Vector3.Distance(player.position, transform.position) < 7f;
     }
 }
