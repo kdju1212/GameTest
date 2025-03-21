@@ -8,41 +8,49 @@ public class DoorInteract : MonoBehaviour
     public Transform player;
     public Transform exitPoint_A; // 문 앞쪽 출구
     public Transform exitPoint_B; // 문 뒤쪽 출구
-    public static Image progressBar;
+
+    public static Image progressBarFill;
+    public static GameObject progressBarBackground;
     public static TextMeshProUGUI interactText;
-    public static Transform canvasTransform; // ✅ UI가 배치될 `Canvas`
-    private static DoorInteract currentDoor = null; // ✅ 현재 활성화된 문
+    public static Transform canvasTransform;
+
+    private static DoorInteract currentDoor = null;
 
     private bool isHoldingE = false;
     private float holdTime = 1.5f;
     private float currentHoldTime = 0f;
-    private Vector3 doorForward; // 문의 방향 저장
+    private Vector3 doorForward;
 
     void Start()
     {
-        doorForward = transform.forward; // 문의 정면 방향 저장
+        doorForward = transform.forward;
 
-        // ✅ `DoorCanvas`를 찾고 UI 요소 가져오기
         GameObject canvasObj = GameObject.Find("DoorCanvas");
         if (canvasObj != null)
         {
             canvasTransform = canvasObj.transform;
-            progressBar = canvasObj.transform.Find("ProgressBar")?.GetComponent<Image>();
-            interactText = canvasObj.transform.Find("InteractText")?.GetComponent<TextMeshProUGUI>();
+
+            interactText = canvasTransform.Find("InteractText")?.GetComponent<TextMeshProUGUI>();
+
+            Transform background = canvasTransform.Find("ProgressBarBackground");
+            if (background != null)
+            {
+                progressBarBackground = background.gameObject;
+                progressBarFill = background.Find("ProgressBarFill")?.GetComponent<Image>();
+            }
         }
         else
         {
-            Debug.LogError("🚨 [DoorInteract] `DoorCanvas`를 찾을 수 없습니다! Hierarchy에서 확인하세요.");
+            Debug.LogError("🚨 DoorCanvas를 찾을 수 없습니다!");
         }
 
-        // ✅ UI 초기 상태 설정
-        if (progressBar != null) progressBar.gameObject.SetActive(false);
-        if (interactText != null) interactText.gameObject.SetActive(false);
+        // UI 초기화
+        ResetAllUI();
     }
 
     void Update()
     {
-        if (progressBar == null || interactText == null || canvasTransform == null)
+        if (progressBarFill == null || interactText == null || canvasTransform == null || progressBarBackground == null)
             return;
 
         bool isNearby = IsPlayerNearby();
@@ -50,13 +58,13 @@ public class DoorInteract : MonoBehaviour
 
         if (isNearby && isLooking)
         {
-            if (currentDoor != this) // ✅ 현재 문이 바뀌었을 때만 UI를 업데이트
+            if (currentDoor != this)
             {
                 currentDoor = this;
-                MoveCanvasToExitPoint(); // ✅ exitPoint 기준으로 UI 위치 변경
+                MoveCanvasToOppositeExit();
                 interactText.gameObject.SetActive(true);
-                progressBar.gameObject.SetActive(true);
-                Debug.Log($"✅ {gameObject.name} UI 활성화됨!");
+                progressBarBackground.SetActive(false);
+                progressBarFill.gameObject.SetActive(false);
             }
 
             if (Input.GetKey(KeyCode.E))
@@ -70,51 +78,25 @@ public class DoorInteract : MonoBehaviour
 
             if (Input.GetKeyUp(KeyCode.E))
             {
-                isHoldingE = false;
-                currentHoldTime = 0f;
-                progressBar.fillAmount = 0f;
-                progressBar.gameObject.SetActive(false);
-                interactText.gameObject.SetActive(false);
+                ResetProgressBar(); // 🔄 게이지만 꺼짐 (Text는 유지)
             }
         }
-        else if (currentDoor == this)
+        else if (currentDoor == this && (!isNearby || !isLooking))
         {
+            ResetAllUI();           // 🧹 전체 UI 꺼짐
             currentDoor = null;
-            interactText.gameObject.SetActive(false);
-            progressBar.gameObject.SetActive(false);
-            Debug.Log($"❌ {gameObject.name} UI 비활성화됨!");
         }
     }
-
-    void MoveCanvasToExitPoint()
-    {
-        // ✅ 현재 이동할 출구 선택
-        Transform selectedExit = GetCorrectExit();
-
-        // ✅ 반대편 출구를 선택
-        Transform uiPositionExit = (selectedExit == exitPoint_A) ? exitPoint_B : exitPoint_A;
-
-        if (uiPositionExit != null)
-        {
-            // ✅ UI를 반대편 출구 위로 이동
-            canvasTransform.position = uiPositionExit.position + new Vector3(0, 1.5f, 0);
-        }
-
-        // ✅ UI가 플레이어를 바라보도록 설정
-        Vector3 lookDirection = player.position - canvasTransform.position;
-        lookDirection.y = 0; // Y축 고정 (UI가 이상한 각도로 회전하지 않도록)
-        canvasTransform.rotation = Quaternion.LookRotation(-lookDirection);
-    }
-
 
     IEnumerator HoldToTeleport()
     {
-        progressBar.gameObject.SetActive(true);
+        progressBarBackground.SetActive(true);
+        progressBarFill.gameObject.SetActive(true);
 
         while (isHoldingE && currentHoldTime < holdTime)
         {
             currentHoldTime += Time.deltaTime;
-            progressBar.fillAmount = currentHoldTime / holdTime;
+            progressBarFill.fillAmount = currentHoldTime / holdTime;
             yield return null;
         }
 
@@ -123,25 +105,36 @@ public class DoorInteract : MonoBehaviour
             TeleportPlayer();
         }
 
-        isHoldingE = false;
-        currentHoldTime = 0f;
-        progressBar.fillAmount = 0f;
-        progressBar.gameObject.SetActive(false);
+        ResetProgressBar(); // ✅ 게이지만 꺼짐
     }
 
     void TeleportPlayer()
     {
         Transform selectedExit = GetCorrectExit();
-
         if (selectedExit != null)
         {
             player.position = selectedExit.position;
-            Debug.Log($"🚀 플레이어가 {selectedExit.name}로 텔레포트됨!");
+            Debug.Log($"🚪 {gameObject.name} 통해 {selectedExit.name}로 텔레포트됨!");
         }
         else
         {
-            Debug.LogError($"🚨 {gameObject.name} 출구 위치가 설정되지 않음!");
+            Debug.LogError("🚨 출구 위치가 설정되지 않음!");
         }
+    }
+
+    void MoveCanvasToOppositeExit()
+    {
+        Transform selectedExit = GetCorrectExit();
+        Transform oppositeExit = (selectedExit == exitPoint_A) ? exitPoint_B : exitPoint_A;
+
+        if (oppositeExit != null)
+        {
+            canvasTransform.position = oppositeExit.position + new Vector3(0, 1.5f, 0);
+        }
+
+        Vector3 lookDir = player.position - canvasTransform.position;
+        lookDir.y = 0;
+        canvasTransform.rotation = Quaternion.LookRotation(-lookDir);
     }
 
     Transform GetCorrectExit()
@@ -156,7 +149,6 @@ public class DoorInteract : MonoBehaviour
         Transform cameraTransform = Camera.main.transform;
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         RaycastHit hit;
-
         int layerMask = LayerMask.GetMask("Door");
 
         if (Physics.Raycast(ray, out hit, 7f, layerMask))
@@ -169,5 +161,22 @@ public class DoorInteract : MonoBehaviour
     bool IsPlayerNearby()
     {
         return Vector3.Distance(player.position, transform.position) < 7f;
+    }
+
+    // ✅ 게이지만 초기화
+    void ResetProgressBar()
+    {
+        isHoldingE = false;
+        currentHoldTime = 0f;
+        progressBarFill.fillAmount = 0f;
+        progressBarFill.gameObject.SetActive(false);
+        progressBarBackground.SetActive(false);
+    }
+
+    // ✅ 전체 UI 초기화
+    void ResetAllUI()
+    {
+        ResetProgressBar();
+        if (interactText != null) interactText.gameObject.SetActive(false);
     }
 }
