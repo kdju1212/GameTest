@@ -180,3 +180,4 @@ public class DoorInteract : MonoBehaviour
         if (interactText != null) interactText.gameObject.SetActive(false);
     }
 }
+// 03-24 git 등록 테스트
