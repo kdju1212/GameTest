@@ -6,8 +6,8 @@ using System.Collections;
 public class DoorInteract : MonoBehaviour
 {
     public Transform player;
-    public Transform exitPoint_A; // 문 앞쪽 출구
-    public Transform exitPoint_B; // 문 뒤쪽 출구
+    public Transform exitPoint_A;
+    public Transform exitPoint_B;
 
     public static Image progressBarFill;
     public static GameObject progressBarBackground;
@@ -17,7 +17,7 @@ public class DoorInteract : MonoBehaviour
     private static DoorInteract currentDoor = null;
 
     private bool isHoldingE = false;
-    private float holdTime = 1.5f;
+    private float holdTime = 1f;
     private float currentHoldTime = 0f;
     private Vector3 doorForward;
 
@@ -29,7 +29,6 @@ public class DoorInteract : MonoBehaviour
         if (canvasObj != null)
         {
             canvasTransform = canvasObj.transform;
-
             interactText = canvasTransform.Find("InteractText")?.GetComponent<TextMeshProUGUI>();
 
             Transform background = canvasTransform.Find("ProgressBarBackground");
@@ -44,8 +43,9 @@ public class DoorInteract : MonoBehaviour
             Debug.LogError("🚨 DoorCanvas를 찾을 수 없습니다!");
         }
 
-        // UI 초기화
         ResetAllUI();
+        if (canvasTransform != null)
+            canvasTransform.gameObject.SetActive(false);
     }
 
     void Update()
@@ -61,7 +61,8 @@ public class DoorInteract : MonoBehaviour
             if (currentDoor != this)
             {
                 currentDoor = this;
-                MoveCanvasToOppositeExit();
+                MoveCanvasToDoor();
+                canvasTransform.gameObject.SetActive(true);
                 interactText.gameObject.SetActive(true);
                 progressBarBackground.SetActive(false);
                 progressBarFill.gameObject.SetActive(false);
@@ -78,12 +79,13 @@ public class DoorInteract : MonoBehaviour
 
             if (Input.GetKeyUp(KeyCode.E))
             {
-                ResetProgressBar(); // 🔄 게이지만 꺼짐 (Text는 유지)
+                ResetProgressBar();
             }
         }
         else if (currentDoor == this && (!isNearby || !isLooking))
         {
-            ResetAllUI();           // 🧹 전체 UI 꺼짐
+            ResetAllUI();
+            canvasTransform.gameObject.SetActive(false);
             currentDoor = null;
         }
     }
@@ -105,7 +107,7 @@ public class DoorInteract : MonoBehaviour
             TeleportPlayer();
         }
 
-        ResetProgressBar(); // ✅ 게이지만 꺼짐
+        ResetProgressBar();
     }
 
     void TeleportPlayer()
@@ -114,34 +116,46 @@ public class DoorInteract : MonoBehaviour
         if (selectedExit != null)
         {
             player.position = selectedExit.position;
-            Debug.Log($"🚪 {gameObject.name} 통해 {selectedExit.name}로 텔레포트됨!");
+            Debug.Log($"🚪 {gameObject.name} → {selectedExit.name} 로 텔레포트 완료!");
         }
         else
         {
-            Debug.LogError("🚨 출구 위치가 설정되지 않음!");
+            Debug.LogError("❌ exitPoint가 설정되지 않음!");
         }
     }
 
-    void MoveCanvasToOppositeExit()
+    void MoveCanvasToDoor()
     {
-        Transform selectedExit = GetCorrectExit();
-        Transform oppositeExit = (selectedExit == exitPoint_A) ? exitPoint_B : exitPoint_A;
+        if (canvasTransform == null) return;
 
-        if (oppositeExit != null)
+        Vector3 doorPos = transform.position;
+        doorPos.y = 3f;
+
+        Vector3 doorToPlayer = (player.position - doorPos).normalized;
+        canvasTransform.position = doorPos + doorToPlayer * 1f;
+
+        // 문과 평행하게 UI 회전
+        Vector3 forward = transform.forward;
+        forward.y = 0;
+        Quaternion baseRotation = Quaternion.LookRotation(forward);
+
+        float dot = Vector3.Dot(transform.forward, (player.position - transform.position).normalized);
+        if (dot > 0)
         {
-            canvasTransform.position = oppositeExit.position + new Vector3(0, 1.5f, 0);
+            canvasTransform.rotation = baseRotation * Quaternion.Euler(0, 180f, 0);
         }
-
-        Vector3 lookDir = player.position - canvasTransform.position;
-        lookDir.y = 0;
-        canvasTransform.rotation = Quaternion.LookRotation(-lookDir);
+        else
+        {
+            canvasTransform.rotation = baseRotation;
+        }
     }
 
     Transform GetCorrectExit()
     {
-        Vector3 playerToDoor = player.position - transform.position;
-        float dot = Vector3.Dot(playerToDoor.normalized, doorForward);
-        return dot > 0 ? exitPoint_A : exitPoint_B;
+        Vector3 doorToPlayer = (player.position - transform.position).normalized;
+        float dot = Vector3.Dot(transform.forward, doorToPlayer);
+        Debug.Log($"{gameObject.name} → dot: {dot}");
+        return dot < 0 ? exitPoint_B : exitPoint_A;
     }
 
     bool IsLookingAtDoor()
@@ -163,7 +177,6 @@ public class DoorInteract : MonoBehaviour
         return Vector3.Distance(player.position, transform.position) < 7f;
     }
 
-    // ✅ 게이지만 초기화
     void ResetProgressBar()
     {
         isHoldingE = false;
@@ -173,11 +186,9 @@ public class DoorInteract : MonoBehaviour
         progressBarBackground.SetActive(false);
     }
 
-    // ✅ 전체 UI 초기화
     void ResetAllUI()
     {
         ResetProgressBar();
         if (interactText != null) interactText.gameObject.SetActive(false);
     }
 }
-// 03-24 git 등록 테스트

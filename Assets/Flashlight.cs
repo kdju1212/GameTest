@@ -3,123 +3,48 @@
 public class Flashlight : MonoBehaviour, IPickupable
 {
     private Light flashlight;
-    private bool isOn = false;
     private bool isPickedUp = false;
     public Transform playerCamera;
-    public Transform player;  // 🎯 플레이어 위치 참조
-
+    public Transform player;
+    private Vector3 originalScale;
     private Rigidbody rb;
     private Collider col;
-    private MeshRenderer meshRenderer;
-
-    public float pickupRange = 2f; // ✅ 줍기 가능 거리 (2m)
-
-    private Vector3 originalPosition;  // 아이템의 원래 월드 위치
-    private Quaternion originalRotation;  // 아이템의 원래 월드 회전
-    private Vector3 originalScale;  // 아이템의 원래 스케일 (변경 부분)
 
     void Start()
     {
-        flashlight = GetComponentInChildren<Light>();
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-        meshRenderer = GetComponent<MeshRenderer>();
+        flashlight = GetComponentInChildren<Light>();
+        originalScale = transform.localScale;
+        if (player == null)
+            player = GameObject.FindWithTag("Player")?.transform;
 
         if (playerCamera == null)
-        {
-            GameObject player = GameObject.FindWithTag("Player");
-            if (player != null)
-            {
-                playerCamera = player.transform.Find("Main Camera");
-            }
-
-            if (playerCamera == null)
-            {
-                Debug.LogError("❌ 'Main Camera'를 찾을 수 없음! 'playerCamera'를 수동으로 설정하세요.");
-            }
-        }
-
-        if (player == null)
-        {
-            player = GameObject.FindWithTag("Player")?.transform;
-            if (player == null)
-            {
-                Debug.LogError("❌ 'Player' 태그가 설정된 오브젝트를 찾을 수 없음!");
-            }
-        }
+            playerCamera = Camera.main?.transform;
     }
 
     void Update()
     {
-        if (isPickedUp)
+        // 좌클릭 시 손전등 켜기/끄기 (들고 있는 상태에서만 가능)
+        if (transform.parent != null && Input.GetMouseButtonDown(0))
         {
-            // ✅ 손전등이 플레이어의 시야를 따라가도록 설정
-            transform.rotation = playerCamera.rotation;
-
-            // 좌클릭하면 손전등 On/Off
-            if (Input.GetMouseButtonDown(0))
-            {
-                ToggleFlashlight();
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            float distance = Vector3.Distance(transform.position, player.position);
-            Debug.Log($"📏 플레이어와 손전등 거리: {distance}");
-
-            if (isPickedUp)
-            {
-                Debug.Log("🛑 손전등을 버리려 합니다!");
-                DropItem();
-            }
-            else if (distance <= pickupRange)
-            {
-                Debug.Log("🎯 손전등을 주우려 합니다!");
-                PickupItem();
-            }
-            else
-            {
-                Debug.Log("❌ 너무 멀어서 줍기 불가능!");
-            }
+            ToggleFlashlight();
         }
     }
+
 
     public void OnPickup()
     {
-        PickupItem();
-    }
-
-    public void OnDrop(Vector3 dropPosition)
-    {
-        DropItem();
-    }
-
-    void PickupItem()
-    {
-        Debug.Log("✅ PickupItem() 실행됨!");
-
         isPickedUp = true;
-        Transform playerHand = GameObject.FindWithTag("Player")?.transform.Find("Hand");
+        Transform hand = GameObject.FindWithTag("Player")?.transform.Find("Hand");
+        flashlight.enabled = false;
 
-        if (playerHand != null)
+        if (hand != null)
         {
-            // 아이템의 원래 위치, 회전, 크기 저장
-            originalPosition = transform.position;  // 아이템의 원래 월드 위치 저장
-            originalRotation = transform.rotation;  // 아이템의 원래 월드 회전 저장
-            originalScale = transform.localScale;  // 아이템의 원래 크기 저장
-
-            transform.SetParent(playerHand);
+            transform.SetParent(hand);
             transform.localPosition = new Vector3(0.3f, -0.2f, 0.8f);
-            transform.localRotation = Quaternion.Euler(0, 0, 0);
-
-            // 아이템의 크기를 (1, 1, 1)로 초기화하여 부모 손의 크기 영향을 받지 않도록 설정
-            // transform.localScale = Vector3.one;  // 부모의 영향을 받지 않도록 (1, 1, 1)로 설정
-            transform.localScale = originalScale;  // 원래 크기 복원
-        }
-        else
-        {
-            Debug.LogError("❌ Hand 오브젝트를 찾을 수 없음!");
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = originalScale;
         }
 
         if (col != null) col.enabled = false;
@@ -128,60 +53,48 @@ public class Flashlight : MonoBehaviour, IPickupable
             rb.isKinematic = true;
             rb.useGravity = false;
         }
-
-        if (meshRenderer != null)
-        {
-            meshRenderer.enabled = true;
-        }
     }
 
-    void DropItem()
+    public void OnDrop(Vector3 dropPosition)
     {
-        Debug.Log("🛑 DropItem() 실행됨!");
-
         isPickedUp = false;
-        transform.SetParent(null);
 
-        // 아이템의 `localScale`을 원래 크기로 설정
-        transform.localScale = originalScale;  // 원래 크기 복원
+        transform.SetParent(null);
+        transform.position = dropPosition;
+        transform.localScale = originalScale;
+        flashlight.enabled = false;
 
         if (col != null) col.enabled = true;
         if (rb != null)
         {
             rb.isKinematic = false;
             rb.useGravity = true;
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.AddForce(transform.forward * 0.2f + Vector3.down * 0.5f, ForceMode.Impulse);
-        }
-
-        if (flashlight != null)
-        {
-            isOn = false;
-            flashlight.enabled = false;
         }
     }
+    //public void OnPickup()
+    //{
+    //    // 필요하면 실행 시점에 초기화할 내용 (예: 꺼진 상태)
+    //    Debug.Log("🔦 손전등이 줍혔습니다!");
+    //    flashlight.enabled = false;
+    //    isPickedUp = false;
+    //}
+
+    //public void OnDrop(Vector3 dropPosition)
+    //{
+
+    //    // 손전등이 바닥에 떨어지면 자동 꺼짐
+    //    flashlight.enabled = false;
+    //    isPickedUp = false;
+    //    Debug.Log("💡 손전등이 바닥에 떨어졌습니다!");
+    //}
 
     void ToggleFlashlight()
     {
-        isOn = !isOn;
+        isPickedUp = !isPickedUp;
         if (flashlight != null)
         {
-            flashlight.enabled = isOn;
-            Debug.Log("🔦 손전등 상태: " + (isOn ? "켜짐" : "꺼짐"));
+            flashlight.enabled = isPickedUp;
+            Debug.Log("🔦 손전등 상태: " + (isPickedUp ? "켜짐" : "꺼짐"));
         }
-    }
-
-    Vector3 FindSafeDropPosition(Vector3 startPosition)
-    {
-        RaycastHit hit;
-        Vector3 newPosition = startPosition + Vector3.up * 0.5f;
-
-        if (Physics.Raycast(startPosition, Vector3.down, out hit, 2f))
-        {
-            newPosition = hit.point + Vector3.up * 0.2f;
-        }
-
-        return newPosition;
     }
 }

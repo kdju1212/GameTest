@@ -3,7 +3,7 @@
 public class PlayerMovement : MonoBehaviour
 {
     public float moveSpeed = 5f;   // 이동 속도
-    public float jumpForce = 7f;   // 점프 힘
+    public float jumpForce = 4f;   // 점프 힘
     private Rigidbody rb;
     private bool isGrounded;       // 바닥에 있는지 확인
 

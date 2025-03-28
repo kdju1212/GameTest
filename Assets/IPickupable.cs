@@ -2,6 +2,8 @@
 
 public interface IPickupable
 {
-    void OnPickup();  // 아이템 줍기
-    void OnDrop(Vector3 dropPosition);  // 아이템 드롭 (위치 지정)
+    void OnPickup();
+    void OnDrop(Vector3 dropPosition);
+  
 }
+
