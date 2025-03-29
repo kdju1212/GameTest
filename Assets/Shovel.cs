@@ -33,6 +33,7 @@ public class Shovel : MonoBehaviour, IPickupable
 
     void Update()
     {
+        
         if (isPickedUp && Input.GetMouseButtonDown(0) && canAttack)
         {
             Attack();
@@ -52,6 +53,8 @@ public class Shovel : MonoBehaviour, IPickupable
             transform.localPosition = new Vector3(0.3f, -0.2f, 0.8f);
             transform.localRotation = Quaternion.identity;
             transform.localScale = originalScale;
+            
+
         }
 
         if (col != null) col.enabled = false;
@@ -135,4 +138,15 @@ public class Shovel : MonoBehaviour, IPickupable
             enemyRb.isKinematic = false;
         }
     }
+
+    public void OnEquip()
+    {
+        isPickedUp = true;
+    }
+
+    public void OnUnequip()
+    {
+        isPickedUp = false;
+    }
+
 }

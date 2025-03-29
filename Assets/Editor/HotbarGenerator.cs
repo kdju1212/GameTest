@@ -27,15 +27,15 @@ public class HotbarGenerator : MonoBehaviour
         panelRect.anchoredPosition = new Vector2(0, 50);
         panelRect.sizeDelta = new Vector2(600, 80);
 
-        // 🔳 슬롯 9개 생성
-        for (int i = 0; i < 9; i++)
+        // 🔳 슬롯 8개 생성
+        for (int i = 0; i < 8; i++)
         {
             GameObject slotGO = new GameObject($"Slot_{i + 1}", typeof(RectTransform), typeof(Image));
             slotGO.transform.SetParent(panelGO.transform, false);
 
             RectTransform slotRect = slotGO.GetComponent<RectTransform>();
             slotRect.sizeDelta = new Vector2(60, 60);
-            slotRect.anchoredPosition = new Vector2(i * 65 - 260, 0); // 가로로 배치
+            slotRect.anchoredPosition = new Vector2(i * 65 - 227.5f, 0); // 8칸에 맞춰 조정
 
             Image img = slotGO.GetComponent<Image>();
             img.color = new Color(0.8f, 0.8f, 0.8f, 0.6f); // 회색 반투명
@@ -46,13 +46,13 @@ public class HotbarGenerator : MonoBehaviour
         selector.transform.SetParent(panelGO.transform, false);
         RectTransform selRect = selector.GetComponent<RectTransform>();
         selRect.sizeDelta = new Vector2(70, 70);
-        selRect.anchoredPosition = new Vector2(-260, 0); // 첫 번째 슬롯
+        selRect.anchoredPosition = new Vector2(-227.5f, 0); // 첫 번째 슬롯 위치로 조정
 
         Image selImage = selector.GetComponent<Image>();
         selImage.color = Color.yellow;
         selImage.raycastTarget = false;
 
-        Debug.Log("✅ Hotbar UI 생성 완료!");
+        Debug.Log("✅ Hotbar UI 생성 완료 (8개 슬롯)!");
         Selection.activeGameObject = canvasGO;
     }
 }

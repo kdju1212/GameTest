@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
@@ -40,20 +41,22 @@ public class PlayerInventory : MonoBehaviour
 
     void HandleScrollInput()
     {
-        if (inventoryItems.Count == 0) return;
+        if (maxSlots <= 0) return;
 
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll > 0f)
         {
-            equippedIndex = (equippedIndex + 1) % inventoryItems.Count;
-            UpdateEquippedItem();
+            equippedIndex = (equippedIndex - 1 + maxSlots) % maxSlots;
         }
         else if (scroll < 0f)
         {
-            equippedIndex = (equippedIndex - 1 + inventoryItems.Count) % inventoryItems.Count;
-            UpdateEquippedItem();
+            equippedIndex = (equippedIndex + 1) % maxSlots;
         }
+
+
+        UpdateEquippedItem();
     }
+
 
     void HandleDropInput()
     {
@@ -65,26 +68,63 @@ public class PlayerInventory : MonoBehaviour
 
     void UpdateEquippedItem()
     {
-        if (handTransform == null) return;
+        if (handTransform == null)
+            return;
 
+        // 1️⃣ 현재 손에 있는 모든 아이템 비활성화
         foreach (Transform child in handTransform)
         {
             child.gameObject.SetActive(false);
         }
 
-        if (equippedIndex >= 0 && equippedIndex < inventoryItems.Count && inventoryItems[equippedIndex] != null)
+        // 2️⃣ 선택된 슬롯이 비어 있지 않다면 아이템 활성화
+        if (equippedIndex >= 0 && equippedIndex < inventoryItems.Count)
         {
             GameObject item = inventoryItems[equippedIndex];
-            item.transform.SetParent(handTransform);
-            item.transform.localPosition = new Vector3(0.3f, -0.2f, 0.8f);
-            item.transform.localRotation = Quaternion.identity;
-            item.transform.localScale = Vector3.one;
-            item.SetActive(true);
+            if (item != null)
+            {
+                // 3️⃣ 손 위치에 배치
+                item.transform.SetParent(handTransform);
+                item.transform.localPosition = new Vector3(0.3f, -0.2f, 0.8f);
+                item.transform.localRotation = Quaternion.identity;
+                item.SetActive(true); // ✅ GameObject 활성화
 
-            IPickupable pickupable = item.GetComponent<IPickupable>();
-            pickupable?.OnPickup();
+                // 🔥 추가: 비활성화된 스크립트 강제 활성화
+                MonoBehaviour[] components = item.GetComponents<MonoBehaviour>();
+                foreach (var comp in components)
+                {
+                    comp.enabled = true;
+                }
+
+                // 4️⃣ 다음 프레임에 OnPickup() 호출
+                StartCoroutine(DelayedOnPickup(item));
+            }
         }
     }
+
+
+
+    private System.Collections.IEnumerator DelayedOnPickup(GameObject item)
+    {
+        yield return null; // 🔄 한 프레임 기다림 (SetParent, SetActive 등 적용 완료 후)
+
+        IPickupable pickupable = item.GetComponentInChildren<IPickupable>();
+
+        if (pickupable != null)
+        {
+            pickupable.OnPickup();
+            pickupable.OnEquip();
+            Debug.Log($"✅ OnPickup() + OnEquip() 호출 완료 → {item.name}");
+        }
+        else
+        {
+            Debug.LogWarning($"⚠️ IPickupable이 없음 → {item.name}");
+        }
+    }
+
+
+
+
 
     public void AddItem(GameObject item)
     {

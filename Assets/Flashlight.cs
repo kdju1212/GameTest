@@ -9,6 +9,7 @@ public class Flashlight : MonoBehaviour, IPickupable
     private Vector3 originalScale;
     private Rigidbody rb;
     private Collider col;
+    private bool isOn = false; // 손전등 켜짐 상태 추적
 
     void Start()
     {
@@ -25,20 +26,28 @@ public class Flashlight : MonoBehaviour, IPickupable
 
     void Update()
     {
-        // 좌클릭 시 손전등 켜기/끄기 (들고 있는 상태에서만 가능)
-        if (transform.parent != null && Input.GetMouseButtonDown(0))
+        Debug.Log("🟢 Flashlight Update() 작동 중");
+        Debug.Log($"▶ isPickedUp = {isPickedUp}");
+        Debug.Log($"▶ gameObject 활성 상태: {gameObject.activeInHierarchy}");
+
+        if (Input.GetMouseButtonDown(0))
         {
+            Debug.Log("💡 좌클릭 감지됨 → 손전등 토글 시도");
             ToggleFlashlight();
         }
     }
 
 
+
+
+
+
+
     public void OnPickup()
     {
         isPickedUp = true;
-        Transform hand = GameObject.FindWithTag("Player")?.transform.Find("Hand");
-        flashlight.enabled = false;
 
+        Transform hand = GameObject.FindWithTag("Player")?.transform.Find("Hand");
         if (hand != null)
         {
             transform.SetParent(hand);
@@ -53,7 +62,15 @@ public class Flashlight : MonoBehaviour, IPickupable
             rb.isKinematic = true;
             rb.useGravity = false;
         }
+
+        if (flashlight != null)
+        {
+            flashlight.enabled = false; // 기본적으로 꺼진 상태로 시작
+        }
+
+        Debug.Log("✅ OnPickup() 호출 완료 → Flashlight 활성화 준비 완료");
     }
+
 
     public void OnDrop(Vector3 dropPosition)
     {
@@ -88,13 +105,29 @@ public class Flashlight : MonoBehaviour, IPickupable
     //    Debug.Log("💡 손전등이 바닥에 떨어졌습니다!");
     //}
 
+    
+
     void ToggleFlashlight()
     {
-        isPickedUp = !isPickedUp;
+        isOn = !isOn;
         if (flashlight != null)
         {
-            flashlight.enabled = isPickedUp;
-            Debug.Log("🔦 손전등 상태: " + (isPickedUp ? "켜짐" : "꺼짐"));
+            flashlight.enabled = isOn;
+            Debug.Log("🔦 손전등 상태: " + (isOn ? "켜짐" : "꺼짐"));
         }
     }
+
+    public void OnEquip()
+    {
+        isPickedUp = true;
+        Debug.Log("✅ OnEquip()에서 isPickedUp = true 설정됨 → " + gameObject.name);
+    }
+
+
+    public void OnUnequip()
+    {
+        isPickedUp = false;
+    }
+
+
 }
